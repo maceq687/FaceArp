@@ -104,6 +104,3 @@ dist
 
 # TernJS port file
 .tern-port
-
-# Ignore exported files
-export/*.json

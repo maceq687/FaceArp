@@ -1,3 +1,5 @@
+let device;
+
 async function setup() {
     const patchExportURL = "export/patch.export.json";
 
@@ -41,18 +43,7 @@ async function setup() {
         return;
     }
     
-    // (Optional) Fetch the dependencies
-    let dependencies = [];
-    try {
-        const dependenciesResponse = await fetch("export/dependencies.json");
-        dependencies = await dependenciesResponse.json();
-
-        // Prepend "export" to any file dependenciies
-        dependencies = dependencies.map(d => d.file ? Object.assign({}, d, { file: "export/" + d.file }) : d);
-    } catch (e) {}
-
     // Create the device
-    let device;
     try {
         device = await RNBO.createDevice({ context, patcher });
     } catch (err) {
@@ -63,10 +54,6 @@ async function setup() {
         }
         return;
     }
-
-    // (Optional) Load the samples
-    if (dependencies.length)
-        await device.loadDataBufferDependencies(dependencies);
 
     // Connect the device to the web audio graph
     device.node.connect(outputNode);
@@ -332,5 +319,94 @@ function makeMIDIKeyboard(device) {
         mdiv.appendChild(key);
     });
 }
+
+// // Computer vision
+// const videoElement = document.getElementsByClassName('input_video')[0];
+// const canvasElement = document.getElementsByClassName('output_canvas')[0];
+// const canvasCtx = canvasElement.getContext('2d');
+
+// function radiansToDegrees(radians) {
+//     return radians * (180 / Math.PI);
+// }
+
+// function rotationToUnit(angle) {
+//     angle = Math.min(Math.max(angle, -45), 45);
+//     angle = (45 + angle) / 90;
+//     return Math.round(100 * angle) / 100;
+// }
+
+// function onResults(results) {
+//     canvasCtx.save();
+//     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+//     canvasCtx.drawImage(
+//         results.image, 0, 0, canvasElement.width, canvasElement.height);
+//     canvasCtx.fillStyle = '#fff7e6E6';
+//     canvasCtx.fillRect(0, 0, canvasElement.width, canvasElement.height);
+//     if (results.multiFaceLandmarks) {
+//         for (const landmarks of results.multiFaceLandmarks) {
+
+//             const pTop = new THREE.Vector3(landmarks[10].x, landmarks[10].y, landmarks[10].z);
+//             const pBottom = new THREE.Vector3(landmarks[152].x, landmarks[152].y, landmarks[152].z);
+//             const pLeft = new THREE.Vector3(landmarks[234].x, landmarks[234].y, landmarks[234].z);
+//             const pRight = new THREE.Vector3(landmarks[454].x, landmarks[454].y, landmarks[454].z);
+
+//             const pTB = pTop.clone().addScaledVector(pBottom, -1).normalize();
+//             const pLR = pLeft.clone().addScaledVector(pRight, -1).normalize();
+
+//             let yaw = radiansToDegrees(Math.PI / 2 - pLR.angleTo(new THREE.Vector3(0, 0, 1)));
+//             let pitch = radiansToDegrees(Math.PI / 2 - pTB.angleTo(new THREE.Vector3(0, 0, 1)));
+//             let roll = radiansToDegrees(Math.PI / 2 - pTB.angleTo(new THREE.Vector3(1, 0, 0)));
+
+//             pitch = 2 * pitch;
+//             roll = 2 * roll;
+
+//             yaw = rotationToUnit(yaw);
+//             pitch = rotationToUnit(pitch);
+//             roll = rotationToUnit(roll);
+
+//             let d = Math.sqrt(Math.pow((landmarks[13].x - landmarks[14].x), 2) + Math.pow((landmarks[13].y - landmarks[14].y), 2) + Math.pow((landmarks[13].z - landmarks[14].z), 2));
+//             d = Math.min((Math.round(1000 * d) / 100), 1);
+
+//             // Link sliders to computer vision
+//             const sliderX = device.parametersById.get("pan");
+//             if (sliderX)
+//                 sliderX.value = (yaw * 2) - 1;
+//             const sliderY = device.parametersById.get("probability");
+//             if (sliderY)
+//                 sliderY.value = pitch * 100;
+//             const sliderZ = device.parametersById.get("cutoff");
+//             if (sliderZ)
+//                 sliderZ.value = roll * 100;
+//             const sliderW = device.parametersById.get("reverb");
+//             if (sliderW)
+//                 sliderW.value = d * 100;
+
+//             drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION, {color: '#00081970', lineWidth: 2});
+//         }
+//     }
+//     canvasCtx.restore();
+// }
+
+// const faceMesh = new FaceMesh({locateFile: (file) => {
+//     return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+// }});
+// faceMesh.setOptions({
+//     selfieMode: true,
+//     enableFaceGeometry: false,
+//     maxNumFaces: 1,
+//     refineLandmarks: false,
+//     minDetectionConfidence: 0.5,
+//     minTrackingConfidence: 0.5
+// });
+// faceMesh.onResults(onResults);
+
+// const camera = new Camera(videoElement, {
+//     onFrame: async () => {
+//         await faceMesh.send({image: videoElement});
+//     },
+//     width: 854,
+//     height: 480
+// });
+// camera.start();
 
 setup();
