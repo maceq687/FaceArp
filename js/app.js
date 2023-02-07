@@ -64,15 +64,6 @@ async function setup() {
     // (Optional) Automatically create sliders for the device parameters
     makeSliders(device);
 
-    // (Optional) Create a form to send messages to RNBO inputs
-    makeInportForm(device);
-
-    // (Optional) Attach listeners to outports so you can log messages from the RNBO patcher
-    attachOutports(device);
-
-    // (Optional) Load presets, if any
-    loadPresets(device, patcher);
-
     // (Optional) Connect MIDI inputs
     makeMIDIKeyboard(device);
 
@@ -195,94 +186,21 @@ function makeSliders(device) {
     });
 }
 
-function makeInportForm(device) {
-    const idiv = document.getElementById("rnbo-inports");
-    const inportSelect = document.getElementById("inport-select");
-    const inportText = document.getElementById("inport-text");
-    const inportForm = document.getElementById("inport-form");
-    let inportTag = null;
-    
-    // Device messages correspond to inlets/outlets or inports/outports
-    // You can filter for one or the other using the "type" of the message
-    const messages = device.messages;
-    const inports = messages.filter(message => message.type === RNBO.MessagePortType.Inport);
-
-    if (inports.length === 0) {
-        idiv.removeChild(document.getElementById("inport-form"));
-        return;
-    } else {
-        idiv.removeChild(document.getElementById("no-inports-label"));
-        inports.forEach(inport => {
-            const option = document.createElement("option");
-            option.innerText = inport.tag;
-            inportSelect.appendChild(option);
-        });
-        inportSelect.onchange = () => inportTag = inportSelect.value;
-        inportTag = inportSelect.value;
-
-        inportForm.onsubmit = (ev) => {
-            // Do this or else the page will reload
-            ev.preventDefault();
-
-            // Turn the text into a list of numbers (RNBO messages must be numbers, not text)
-            const values = inportText.value.split(/\s+/).map(s => parseFloat(s));
-            
-            // Send the message event to the RNBO device
-            let messageEvent = new RNBO.MessageEvent(RNBO.TimeNow, inportTag, values);
-            device.scheduleEvent(messageEvent);
-        }
-    }
-}
-
-function attachOutports(device) {
-    const outports = device.messages.filter(message => message.type === RNBO.MessagePortType.Outport);
-    if (outports.length < 1) {
-        document.getElementById("rnbo-console").removeChild(document.getElementById("rnbo-console-div"));
-        return;
-    }
-
-    document.getElementById("rnbo-console").removeChild(document.getElementById("no-outports-label"));
-    device.messageEvent.subscribe((ev) => {
-
-        // Message events have a tag as well as a payload
-        console.log(`${ev.tag}: ${ev.payload}`);
-
-        document.getElementById("rnbo-console-readout").innerText = `${ev.tag}: ${ev.payload}`;
-    });
-}
-
-function loadPresets(device, patcher) {
-    let presets = patcher.presets || [];
-    if (presets.length < 1) {
-        document.getElementById("rnbo-presets").removeChild(document.getElementById("preset-select"));
-        return;
-    }
-
-    document.getElementById("rnbo-presets").removeChild(document.getElementById("no-presets-label"));
-    let presetSelect = document.getElementById("preset-select");
-    presets.forEach((preset, index) => {
-        const option = document.createElement("option");
-        option.innerText = preset.name;
-        option.value = index;
-        presetSelect.appendChild(option);
-    });
-    presetSelect.onchange = () => device.setPreset(presets[presetSelect.value].preset);
-}
-
 function makeMIDIKeyboard(device) {
     let mdiv = document.getElementById("rnbo-clickable-keyboard");
     if (device.numMIDIInputPorts === 0) return;
 
     mdiv.removeChild(document.getElementById("no-midi-label"));
 
-    const midiNotes = [49, 52, 56, 63];
+    const midiNotes = [36, 40, 44, 48, 52, 56, 60, 64, 68, 72];
+    let midiChannel = 0;
+    let midiPort = 0;
     midiNotes.forEach(note => {
         const key = document.createElement("div");
         const label = document.createElement("p");
         label.textContent = note;
         key.appendChild(label);
         key.addEventListener("pointerdown", () => {
-            let midiChannel = 0;
 
             // Format a MIDI message paylaod, this constructs a MIDI on event
             let noteOnMessage = [
@@ -291,122 +209,129 @@ function makeMIDIKeyboard(device) {
                 100 // MIDI Velocity
             ];
         
+            // Including rnbo.min.js (or the unminified rnbo.js) will add the RNBO object
+            // to the global namespace. This includes the TimeNow constant as well as
+            // the MIDIEvent constructor.
+        
+            // When scheduling an event to occur in the future, use the current audio context time
+            // multiplied by 1000 (converting seconds to milliseconds) for now.
+            let noteOnEvent = new RNBO.MIDIEvent(device.context.currentTime * 1000, midiPort, noteOnMessage);
+        
+            device.scheduleEvent(noteOnEvent);
+
+            key.classList.add("clicked");
+        });
+
+        key.addEventListener("pointerup", () => {
             let noteOffMessage = [
                 128 + midiChannel, // Code for a note off: 10000000 & midi channel (0-15)
                 note, // MIDI Note
                 0 // MIDI Velocity
             ];
-        
-            // Including rnbo.min.js (or the unminified rnbo.js) will add the RNBO object
-            // to the global namespace. This includes the TimeNow constant as well as
-            // the MIDIEvent constructor.
-            let midiPort = 0;
-            let noteDurationMs = 250;
-        
-            // When scheduling an event to occur in the future, use the current audio context time
-            // multiplied by 1000 (converting seconds to milliseconds) for now.
-            let noteOnEvent = new RNBO.MIDIEvent(device.context.currentTime * 1000, midiPort, noteOnMessage);
-            let noteOffEvent = new RNBO.MIDIEvent(device.context.currentTime * 1000 + noteDurationMs, midiPort, noteOffMessage);
-        
-            device.scheduleEvent(noteOnEvent);
+
+            let noteOffEvent = new RNBO.MIDIEvent(device.context.currentTime * 1000, midiPort, noteOffMessage);
+
             device.scheduleEvent(noteOffEvent);
 
-            key.classList.add("clicked");
+            key.classList.remove("clicked");
         });
-
-        key.addEventListener("pointerup", () => key.classList.remove("clicked"));
 
         mdiv.appendChild(key);
     });
 }
 
-// // Computer vision
-// const videoElement = document.getElementsByClassName('input_video')[0];
-// const canvasElement = document.getElementsByClassName('output_canvas')[0];
-// const canvasCtx = canvasElement.getContext('2d');
+// Computer vision
+const videoElement = document.getElementsByClassName('input_video')[0];
+const canvasElement = document.getElementsByClassName('output_canvas')[0];
+const canvasCtx = canvasElement.getContext('2d');
 
-// function radiansToDegrees(radians) {
-//     return radians * (180 / Math.PI);
-// }
+function radiansToDegrees(radians) {
+    return radians * (180 / Math.PI);
+}
 
-// function rotationToUnit(angle) {
-//     angle = Math.min(Math.max(angle, -45), 45);
-//     angle = (45 + angle) / 90;
-//     return Math.round(100 * angle) / 100;
-// }
+function rotationToUnit(angle) {
+    angle = Math.min(Math.max(angle, -45), 45);
+    angle = (45 + angle) / 90;
+    return Math.round(100 * angle) / 100;
+}
 
-// function onResults(results) {
-//     canvasCtx.save();
-//     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-//     canvasCtx.drawImage(
-//         results.image, 0, 0, canvasElement.width, canvasElement.height);
-//     canvasCtx.fillStyle = '#fff7e6E6';
-//     canvasCtx.fillRect(0, 0, canvasElement.width, canvasElement.height);
-//     if (results.multiFaceLandmarks) {
-//         for (const landmarks of results.multiFaceLandmarks) {
+function onResults(results) {
+    canvasCtx.save();
+    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+    canvasCtx.drawImage(
+        results.image, 0, 0, canvasElement.width, canvasElement.height);
+    canvasCtx.fillStyle = '#fff7e6E6';
+    canvasCtx.fillRect(0, 0, canvasElement.width, canvasElement.height);
+    if (results.multiFaceLandmarks) {
+        for (const landmarks of results.multiFaceLandmarks) {
 
-//             const pTop = new THREE.Vector3(landmarks[10].x, landmarks[10].y, landmarks[10].z);
-//             const pBottom = new THREE.Vector3(landmarks[152].x, landmarks[152].y, landmarks[152].z);
-//             const pLeft = new THREE.Vector3(landmarks[234].x, landmarks[234].y, landmarks[234].z);
-//             const pRight = new THREE.Vector3(landmarks[454].x, landmarks[454].y, landmarks[454].z);
+            const pTop = new THREE.Vector3(landmarks[10].x, landmarks[10].y, landmarks[10].z);
+            const pBottom = new THREE.Vector3(landmarks[152].x, landmarks[152].y, landmarks[152].z);
+            const pLeft = new THREE.Vector3(landmarks[234].x, landmarks[234].y, landmarks[234].z);
+            const pRight = new THREE.Vector3(landmarks[454].x, landmarks[454].y, landmarks[454].z);
 
-//             const pTB = pTop.clone().addScaledVector(pBottom, -1).normalize();
-//             const pLR = pLeft.clone().addScaledVector(pRight, -1).normalize();
+            const pTB = pTop.clone().addScaledVector(pBottom, -1).normalize();
+            const pLR = pLeft.clone().addScaledVector(pRight, -1).normalize();
 
-//             let yaw = radiansToDegrees(Math.PI / 2 - pLR.angleTo(new THREE.Vector3(0, 0, 1)));
-//             let pitch = radiansToDegrees(Math.PI / 2 - pTB.angleTo(new THREE.Vector3(0, 0, 1)));
-//             let roll = radiansToDegrees(Math.PI / 2 - pTB.angleTo(new THREE.Vector3(1, 0, 0)));
+            let yaw = radiansToDegrees(Math.PI / 2 - pLR.angleTo(new THREE.Vector3(0, 0, 1)));
+            let pitch = radiansToDegrees(Math.PI / 2 - pTB.angleTo(new THREE.Vector3(0, 0, 1)));
+            let roll = radiansToDegrees(Math.PI / 2 - pTB.angleTo(new THREE.Vector3(1, 0, 0)));
 
-//             pitch = 2 * pitch;
-//             roll = 2 * roll;
+            pitch = 2 * pitch;
+            roll = 2 * roll;
 
-//             yaw = rotationToUnit(yaw);
-//             pitch = rotationToUnit(pitch);
-//             roll = rotationToUnit(roll);
+            yaw = rotationToUnit(yaw);
+            pitch = rotationToUnit(pitch);
+            roll = rotationToUnit(roll);
 
-//             let d = Math.sqrt(Math.pow((landmarks[13].x - landmarks[14].x), 2) + Math.pow((landmarks[13].y - landmarks[14].y), 2) + Math.pow((landmarks[13].z - landmarks[14].z), 2));
-//             d = Math.min((Math.round(1000 * d) / 100), 1);
+            if (pitch < 0.5)
+                pitch = 0.3 + pitch;
+            else
+                pitch = ((pitch - 0.5) * -1) + 0.8;
 
-//             // Link sliders to computer vision
-//             const sliderX = device.parametersById.get("pan");
-//             if (sliderX)
-//                 sliderX.value = (yaw * 2) - 1;
-//             const sliderY = device.parametersById.get("probability");
-//             if (sliderY)
-//                 sliderY.value = pitch * 100;
-//             const sliderZ = device.parametersById.get("cutoff");
-//             if (sliderZ)
-//                 sliderZ.value = roll * 100;
-//             const sliderW = device.parametersById.get("reverb");
-//             if (sliderW)
-//                 sliderW.value = d * 100;
+            let d = Math.sqrt(Math.pow((landmarks[13].x - landmarks[14].x), 2) + Math.pow((landmarks[13].y - landmarks[14].y), 2) + Math.pow((landmarks[13].z - landmarks[14].z), 2));
+            d = Math.min((Math.round(1000 * d) / 100), 1);
 
-//             drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION, {color: '#00081970', lineWidth: 2});
-//         }
-//     }
-//     canvasCtx.restore();
-// }
+            // Link sliders to computer vision
+            const sliderX = device.parametersById.get("pan");
+            if (sliderX)
+                sliderX.value = (yaw * 2) - 1;
+            const sliderY = device.parametersById.get("probability");
+            if (sliderY)
+                sliderY.value = pitch * 100;
+            const sliderZ = device.parametersById.get("cutoff");
+            if (sliderZ)
+                sliderZ.value = roll * 100;
+            const sliderW = device.parametersById.get("reverb");
+            if (sliderW)
+                sliderW.value = d * 100;
 
-// const faceMesh = new FaceMesh({locateFile: (file) => {
-//     return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-// }});
-// faceMesh.setOptions({
-//     selfieMode: true,
-//     enableFaceGeometry: false,
-//     maxNumFaces: 1,
-//     refineLandmarks: false,
-//     minDetectionConfidence: 0.5,
-//     minTrackingConfidence: 0.5
-// });
-// faceMesh.onResults(onResults);
+            drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION, {color: '#00049680', lineWidth: 2});
+        }
+    }
+    canvasCtx.restore();
+}
 
-// const camera = new Camera(videoElement, {
-//     onFrame: async () => {
-//         await faceMesh.send({image: videoElement});
-//     },
-//     width: 854,
-//     height: 480
-// });
-// camera.start();
+const faceMesh = new FaceMesh({locateFile: (file) => {
+    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+}});
+faceMesh.setOptions({
+    selfieMode: true,
+    enableFaceGeometry: false,
+    maxNumFaces: 1,
+    refineLandmarks: false,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+});
+faceMesh.onResults(onResults);
+
+const camera = new Camera(videoElement, {
+    onFrame: async () => {
+        await faceMesh.send({image: videoElement});
+    },
+    width: 854,
+    height: 480
+});
+camera.start();
 
 setup();
