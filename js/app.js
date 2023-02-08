@@ -70,6 +70,8 @@ async function setup() {
     document.body.onclick = () => {
         context.resume();
     }
+    await loadWebMIDI();
+    await webMIDIinit(device);
 
     // Skip if you're not using guardrails.js
     if (typeof guardrails === "function")
@@ -90,6 +92,28 @@ function loadRNBOScript(version) {
         };
         document.body.append(el);
     });
+}
+
+// using WebMIDI library https://webmidijs.org/docs/getting-started/basics
+function loadWebMIDI() {
+    return new Promise((resolve, reject) => {
+        const el = document.createElement("script");
+        el.src = "https://cdn.jsdelivr.net/npm/webmidi@latest/dist/iife/webmidi.iife.js";
+        el.onload = resolve;
+        el.onerror = function(err) {
+            console.log(err);
+            reject(new Error("Failed to load webmidi.js"));
+        };
+        document.body.append(el);
+    });
+}
+
+//other web MIDI functions are in a midiio.js
+function webMIDIinit(device){
+  WebMidi
+    .enable()
+    .then(() => webMIDIstart(device))
+    .catch(err => alert(err));
 }
 
 function makeSliders(device) {

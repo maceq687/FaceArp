@@ -28,17 +28,33 @@
             <h2>MIDI Keyboard</h2>
             <em id="no-midi-label">No MIDI input</em>
         </div>
+        <div id="rnbo-midi">
+            <h2>MIDI In</h2>
+            <span id="midiin-error"></span>
+            <form id="midiin-form" className="inport">
+                <div className="midiin-input">
+                    <select id="midiin-select"></select>
+                </div>
+            </form>
+            <!-- <h2>MIDI Out</h2>
+            <span id="midiout-error"></span>
+            <form id="midiout-form" className="inport">
+                <div className="midiout-input">
+                    <select id="midiout-select"></select>
+                </div>
+            </form> -->
+          </div>
         <div id="rnbo-parameter-sliders">
             <h2>Parameters</h2>
             <em id="no-param-label">No parameters</em>
         </div>
         <div>
             <p>
-                rootNote: 0 - C, 1 - C#, 2 - D, 3 - D#, 4 - E, 5 - F, <br>6 - F#, 7 - G, 8 - G#, 9 - H, 10 - H#, 11 - A
+                rootNote: 0 - C, 1 - C#, 2 - D, 3 - D#, 4 - E, 5 - F, 6 - F#, 7 - G, 8 - G#, 9 - H, 10 - H#, 11 - A
             </p>
         </div>
-        <div>
-            <button onclick="window.location.href='https://github.com/maceq687/FaceArp';">See the code</button>
+        <div id="link-code">
+            <button onclick="window.location.href='https://github.com/maceq687/FaceArp';">See the source code</button>
         </div>
     </div>
 
@@ -53,5 +69,6 @@
     <!-- Import RNBO Engine Wrapper -->
     <!-- Make sure to include the RNBO engine version to the version of your exported code, found in rnbopackage.json -->
     <script type="text/javascript" src="js/app.js"></script>
+    <script type="text/javascript" src="js/webmidi-io.js"></script>
 </body>
 </html>

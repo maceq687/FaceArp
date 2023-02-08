@@ -17,7 +17,7 @@ h2, em {
 
 #rnbo-root {
     margin: auto;
-    max-width: 540px;
+    max-width: 854px;
 }
 
 #rnbo-clickable-keyboard {
@@ -51,4 +51,12 @@ h2, em {
 
 #rnbo-parameter-sliders > div > input:first-of-type {
     flex-grow: 1;
+}
+
+#link-code {
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+    padding-bottom: 1em;
 }
