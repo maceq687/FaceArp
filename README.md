@@ -15,4 +15,4 @@ Run development server locally using `npx http-server`
 
 Face rotation calculations were made based on the solution from [Mach1 web spatial audio player](https://github.com/Mach1Studios/m1-web-spatialaudioplayer) project.  
 
-Web MIDI support added based on [the solution](cycling74.com/forums/web-export-and-midi#reply-63b6385047b56d0014f138dd) created by [Peter Nyboer](https://github.com/nyboer)
+Web MIDI support added based on [the solution](https://cycling74.com/forums/web-export-and-midi#reply-63b6385047b56d0014f138dd) created by [Peter Nyboer](https://github.com/nyboer)
