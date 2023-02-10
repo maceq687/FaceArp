@@ -262,6 +262,8 @@ function makeMIDIKeyboard(device) {
 
         mdiv.appendChild(key);
     });
+
+    computerKeyboardInit(device);
 }
 
 // Computer vision

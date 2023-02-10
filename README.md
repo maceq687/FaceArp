@@ -5,7 +5,7 @@ This project showcases an example of dynamic audio on a webpage, using the JavaS
 Live demo is available here: [https://maceq687.github.io/FaceArp/](https://maceq687.github.io/FaceArp/)  
 Tested and confirmed working on current versions of Chrome and Edge web browsers.
 
-<a href="https://www.youtube.com/watch?v=1e5spj8JPvc" target="_blank"><img src="FaceArp.gif" /></a>
+<a href="https://www.youtube.com/watch?v=1e5spj8JPvc" target="_blank"><img src="img\FaceArp.gif" /></a>
 
 ## Development server
 
