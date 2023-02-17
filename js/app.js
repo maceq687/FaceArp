@@ -64,6 +64,9 @@ async function setup() {
     // (Optional) Automatically create sliders for the device parameters
     makeSliders(device);
 
+    // (Optional) Attach listeners to outports so you can log messages from the RNBO patcher
+    attachOutports(device);
+
     // (Optional) Connect MIDI inputs
     makeMIDIKeyboard(device);
 
@@ -195,6 +198,23 @@ function makeSliders(device) {
     });
 }
 
+let rms = 0;
+let env = 0;
+
+function attachOutports(device) {
+    const outports = device.outports;
+    device.messageEvent.subscribe((ev) => {
+
+        // Ignore message events that don't belong to an outport
+        if (outports.findIndex(elt => elt.tag === ev.tag) < 0) return;
+
+        if (ev.tag == 'rms')
+        rms = ev.payload;
+        if (ev.tag == 'env')
+        env = ev.payload;
+    });
+}
+
 function makeMIDIKeyboard(device) {
     let mdiv = document.getElementById("rnbo-clickable-keyboard");
     if (device.numMIDIInputPorts === 0) return;
@@ -316,6 +336,10 @@ function onResults(results) {
             const sliderW = device.parametersById.get("reverb");
             if (sliderW)
                 sliderW.value = d * 100;
+            
+            for (let i = 0; i < landmarks.length; i++) {
+                landmarks[i].x = ((Math.random() - 0.5) / 40) * env * rms + landmarks[i].x;
+            }
 
             drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION, {color: '#00049680', lineWidth: 2});
         }
